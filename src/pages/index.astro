@@ -6,7 +6,7 @@
 <title>幕末維新MAP - 志士たちの足跡を辿る</title>
 <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
+<style is:global>
 :root{
   --indigo:#1c2d47; --indigo-deep:#0e1626; --indigo-light:#33496b;
   --washi:#f3ead8; --washi-deep:#e9dcbf; --line:#d9c79e;
@@ -78,10 +78,10 @@ section{padding:4.5rem 0;}
 .person-icon{width:28px;height:28px;box-sizing:border-box;border-radius:50%!important;overflow:hidden;color:#fff;font-family:'Noto Serif JP',serif;font-weight:700;
   display:flex;align-items:center;justify-content:center;font-size:.85rem;border:2px solid #fff;
   box-shadow:0 1px 4px rgba(0,0,0,.4);cursor:pointer;}
-.event-icon{border-radius:50%;background:var(--gold);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);}
+.event-icon{width:16px;height:16px;box-sizing:border-box;border-radius:50%!important;background:var(--gold);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);}
 .han-pin{position:relative;width:0;height:0;pointer-events:none;}
 .han-pin .dot{position:absolute;left:0;top:0;transform:translate(-50%,-50%);box-sizing:border-box;width:7px;height:7px;border-radius:50%;border:1px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);}
-.han-pin .label{position:absolute;left:0;bottom:6px;transform:translateX(-50%);font-family:'Noto Serif JP',serif;font-size:13px;font-weight:900;line-height:1.15;color:#111;
+.han-pin .label{z-index:5;position:absolute;left:0;bottom:6px;transform:translateX(-50%);font-family:'Noto Serif JP',serif;font-size:13px;font-weight:900;line-height:1.15;color:#111;
   background:none;border:none;padding:0;white-space:nowrap;text-shadow:-1.5px -1.5px 0 #fff,1.5px -1.5px 0 #fff,-1.5px 1.5px 0 #fff,1.5px 1.5px 0 #fff,0 -2px 0 #fff,0 2px 0 #fff,-2px 0 0 #fff,2px 0 0 #fff,0 0 4px #fff;}
 .kuni-label{pointer-events:none;font-family:'Noto Serif JP',serif;font-size:11px;font-weight:900;color:#111;
   background:none;padding:0;white-space:nowrap;text-shadow:-1.5px -1.5px 0 #fff,1.5px -1.5px 0 #fff,-1.5px 1.5px 0 #fff,1.5px 1.5px 0 #fff,0 -2px 0 #fff,0 2px 0 #fff,-2px 0 0 #fff,2px 0 0 #fff,0 0 4px #fff;transition:opacity .2s;}
@@ -226,11 +226,11 @@ section{padding:4.5rem 0;}
         <span><i style="background:#c0392b"></i>薩摩・長州・土佐・肥前</span>
         <span><i style="background:#5d8f58"></i>会津</span>
         <span><i style="background:#a9c7a0"></i>奥羽越列藩同盟</span>
-        <span><i style="background:#f2d8d8"></i>その他</span>
+        <span><i style="background:#e9968c"></i>その他</span>
       </div>
       <div class="hakodate-legend" style="display:none">
         <span><i style="background:#4a5fa8"></i>蝦夷共和国(渡島半島)</span>
-        <span><i style="background:#e6b4a8"></i>明治政府側</span>
+        <span><i style="background:#e9968c"></i>明治政府側</span>
       </div>
       <div class="map-extra-controls">
         <span class="han-note">藩領は幕末期近世村領域データセットの村点(領分)から作成した概略です。藩名はズームすると順に表示されます。北海道・沖縄はデータがありません。</span>
@@ -382,18 +382,20 @@ const PREF1876_GEOJSON = {"type":"FeatureCollection","features":[{"type":"Featur
 const BOSHIN_RED = '#c0392b';
 const BOSHIN_GREEN = '#5d8f58';
 const BOSHIN_LIGHT_GREEN = '#a9c7a0';
-const BOSHIN_PINK = '#f2d8d8';
+const LIGHT_RED = '#e9968c'; // 新政府側(薩長土肥以外)・函館戦争の明治政府側で共通
+const BOSHIN_PINK = LIGHT_RED;
 const BOSHIN_REDS = new Set(['薩摩鹿児島藩','周防山口藩','土佐高知藩','肥前佐賀藩']);
 const BOSHIN_AIZU = new Set(['陸奥会津藩']);
 const BOSHIN_ALLIANCE = new Set(['陸奥仙台藩','出羽米沢藩','陸奥弘前藩','陸奥八戸藩','陸奥盛岡藩','陸奥一関藩','出羽秋田藩','出羽本荘藩','出羽亀田藩','交代寄合生駒家','出羽新庄藩','出羽山形藩','出羽上山藩','出羽天童藩','陸奥二本松藩','陸奥守山藩','陸奥棚倉藩','陸奥中村藩','陸奥三春藩','陸奥磐城平藩','陸奥福島藩','陸奥泉藩','陸奥湯長谷藩','陸奥下手渡藩','蝦夷松前藩','越後長岡藩','越後新発田藩','越後村上藩','越後村松藩','越後三根山藩','越後黒川藩','出羽庄内藩']);
 const NEUTRAL_FILL = '#e8e0cc';
 // 函館戦争(1869): 蝦夷共和国 = 榎本軍が実効支配した渡島半島(旧渡島国。松前藩領を含む)、それ以外 = 明治政府側
 const HAKODATE_EZO = '#4a5fa8';
-const HAKODATE_MEIJI = '#e6b4a8';
+const HAKODATE_MEIJI = LIGHT_RED;
 const HAKODATE_EZO_HAN = new Set(['蝦夷松前藩']);
 const HAKODATE_EZO_KUNI = new Set(['渡島']);
 let kuniLabelMarkers = {};
 let hanLabelMarkers = [], pref1876LabelMarkers = [], special1876LabelMarkers = [];
+let finalPrefMode = false;
 const hanColorByName = {};
 
 function createPersonMarker(color, letter, title) {
@@ -441,6 +443,7 @@ function updateKuniColors() { /* 藩領は静的に描画 */ }
 
 
 function setFinalPrefectureMode(isFinal) {
+  finalPrefMode = isFinal;
   if (!map || !map.getLayer('pref1876-fill')) return;
   const oldOpacity=isFinal?0:0.55, oldLineOpacity=isFinal?0:0.95, hanOpacity=isFinal?0:0.8, hanLineOpacity=isFinal?0:0.4, prefOpacity=isFinal?0.62:0, prefLineOpacity=isFinal?0.95:0;
   map.setPaintProperty('kuni-fill','fill-opacity',oldOpacity); map.setPaintProperty('kuni-line','line-opacity',oldLineOpacity);
@@ -656,8 +659,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function refreshLabelVisibility() {
       const z = map.getZoom();
       const show = z >= 5.8 ? '1' : '0';
-      Object.values(kuniLabelMarkers).forEach(m => { m.getElement().style.opacity = show; });
-      hanLabelMarkers.forEach(o => { o.m.getElement().style.display = z >= o.minZ ? '' : 'none'; });
+      Object.values(kuniLabelMarkers).forEach(m => { m.getElement().style.opacity = show; m.getElement().style.display = finalPrefMode ? 'none' : ''; });
+      hanLabelMarkers.forEach(o => { o.m.getElement().style.display = (!finalPrefMode && z >= o.minZ) ? '' : 'none'; });
     }
     map.on('zoom', refreshLabelVisibility);
     refreshLabelVisibility();
