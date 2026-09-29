@@ -229,7 +229,8 @@ section{padding:4.5rem 0;}
         <span><i style="background:#e9968c"></i>その他</span>
       </div>
       <div class="hakodate-legend" style="display:none">
-        <span><i style="background:#4a5fa8"></i>蝦夷共和国(渡島半島)</span>
+        <span><i style="background:#4a5fa8"></i>実質的な支配区域(道南)</span>
+        <span><i style="background:#a9c7a0"></i>名目上の支配区域(蝦夷地全域)</span>
         <span><i style="background:#e9968c"></i>明治政府側</span>
       </div>
       <div class="map-extra-controls">
@@ -393,6 +394,8 @@ const HAKODATE_EZO = '#4a5fa8';
 const HAKODATE_MEIJI = LIGHT_RED;
 const HAKODATE_EZO_HAN = new Set(['蝦夷松前藩']);
 const HAKODATE_EZO_KUNI = new Set(['渡島']);
+const HAKODATE_NOMINAL = '#a9c7a0'; // 名目上の支配区域(蝦夷地全域)
+const HAKODATE_NOMINAL_KUNI = new Set(['千島','北見','天塩','石狩','根室','釧路','十勝','後志','膽振','日高']);
 let kuniLabelMarkers = {};
 let hanLabelMarkers = [], pref1876LabelMarkers = [], special1876LabelMarkers = [];
 let finalPrefMode = false;
@@ -472,7 +475,7 @@ function renderPhase(idx) {
   }
   hanLabelMarkers.forEach(o=>{ if(!o.dot) return; const hc=hanColorByName[o.n]; o.dot.style.background = isBoshin && hc ? hc.boshin : isHakodate && hc ? hc.hakodate : CATEGORY_COLOR[o.c]; });
   const hl=document.querySelector('.hakodate-legend'); if(hl) hl.style.display=isHakodate?'flex':'none';
-  if(isHakodate){ const note=document.querySelector('.han-note'); if(note) note.textContent='蝦夷共和国は榎本軍が実効支配した渡島半島(旧渡島国、松前藩領を含む)として表示し、それ以外は明治政府側です。北海道の他の地域は藩領データがないため旧国境で表示しています。'; }
+  if(isHakodate){ const note=document.querySelector('.han-note'); if(note) note.textContent='青は榎本軍が奉行を置いて実効支配した道南(箱館・松前・江差など、旧渡島国)、薄緑は蝦夷地全域(道央・道北・道東・千島)への名目上の領有宣言、赤は明治政府側です。北海道は藩領データがないため旧国境で表示しています。樺太は地図データがありません。'; }
   if(eventMarker){ eventMarker.getElement().classList.toggle('boshin-event',p.title === '戊辰戦争'); eventMarker.getElement().style.zIndex='1000'; }
   const bl=document.querySelector('.boshin-legend'); if(bl) bl.style.display=p.title === '戊辰戦争'?'flex':'none';
 
@@ -588,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btnPlay').addEventListener('click', togglePlay);
 
   map.on('load', function() {
-    KUNI_GEOJSON.features.forEach(f => { f.properties.hakodateColor = HAKODATE_EZO_KUNI.has(f.properties.name) ? HAKODATE_EZO : HAKODATE_MEIJI; });
+    KUNI_GEOJSON.features.forEach(f => { f.properties.hakodateColor = HAKODATE_EZO_KUNI.has(f.properties.name) ? HAKODATE_EZO : HAKODATE_NOMINAL_KUNI.has(f.properties.name) ? HAKODATE_NOMINAL : HAKODATE_MEIJI; });
     map.addSource('kuni', { type: 'geojson', data: KUNI_GEOJSON });
     map.addLayer({
       id: 'kuni-fill', type: 'fill', source: 'kuni',
