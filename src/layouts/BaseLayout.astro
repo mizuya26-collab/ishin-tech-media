@@ -1,0 +1,71 @@
+---
+import '../styles/site.css';
+import { PILLARS } from '../data/pillars.js';
+const { title, description = '年表スライダーで、幕末維新の出来事を地図の上で辿れます。', noindex = false } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const site = Astro.site ? Astro.site.href.replace(/\/$/, '') : '';
+const url = site + Astro.url.pathname;
+const lists = PILLARS.filter((p) => p.id !== 'notes' || true);
+---
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{title}</title>
+<meta name="description" content={description}>
+{noindex && <meta name="robots" content="noindex">}
+<meta property="og:type" content="website">
+<meta property="og:title" content={title}>
+<meta property="og:description" content={description}>
+<meta property="og:url" content={url}>
+<meta property="og:image" content={`${site}${base}/ogp.jpg`}>
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@600;700&display=swap" rel="stylesheet">
+<slot name="head" />
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <a class="logo" href={`${base}/`}><span class="seal" aria-hidden="true">幕</span>幕末維新MAP</a>
+    <nav class="nav" id="nav" aria-label="メインメニュー">
+      <ul>
+        <li><a href={`${base}/#map`}>地図</a></li>
+        <li><a href={`${base}/people/`}>人物</a></li>
+        <li><a href={`${base}/events/`}>事件</a></li>
+        <li><a href={`${base}/orgs/`}>藩・組織</a></li>
+        <li><a href={`${base}/tour/`}>史跡巡り</a></li>
+        <li><a href={`${base}/#more`}>すべての一覧</a></li>
+      </ul>
+    </nav>
+    <button class="menu" id="menu" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="nav">☰</button>
+  </div>
+</header>
+<main><slot /></main>
+<footer class="site-footer">
+  <div class="container">
+    <div>
+      <div class="logo" style="color:var(--fg)">幕末維新MAP</div>
+      <p style="margin-top:10px">非公式の学習・鑑賞用サイトです。地図タイル: 国土地理院(MapLibre GL JS)。旧国境界: 国土数値情報。藩領は概略です。肖像はイメージ画像です。</p>
+    </div>
+    <div>
+      <b>一覧</b><br>
+      {lists.map((p) => <><a href={`${base}/${p.id}/`}>{p.t}</a><br /></>)}
+    </div>
+    <div>
+      <b>サイトについて</b><br>
+      <a href="#">出典・データについて</a><br>
+      <a href="#">運営者情報</a><br>
+      <a href="#">お問い合わせ</a><br>
+      <a href="#">プライバシーポリシー</a><br>
+      <p style="margin-top:6px;font-size:13px">&copy; 2026 幕末維新MAP</p>
+    </div>
+  </div>
+</footer>
+<script>
+  const menu = document.getElementById('menu'), nav = document.getElementById('nav');
+  menu?.addEventListener('click', () => { const o = nav.classList.toggle('open'); menu.setAttribute('aria-expanded', String(o)); });
+</script>
+</body>
+</html>

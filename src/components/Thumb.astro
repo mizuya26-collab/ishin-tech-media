@@ -1,0 +1,10 @@
+---
+// 写真がない記事用の、地図風の絵
+const { label = '' } = Astro.props;
+---
+<svg viewBox="0 0 400 300" role="img" aria-label={label} preserveAspectRatio="xMidYMid slice">
+  <rect width="400" height="300" fill="#172033"/>
+  <g stroke="#f3ead8" stroke-opacity=".08"><path d="M0 75H400M0 150H400M0 225H400M100 0V300M200 0V300M300 0V300"/></g>
+  <path d="M60 240 C130 200 190 190 240 150 S330 100 360 50" fill="none" stroke="#d9b97c" stroke-width="3" stroke-dasharray="2 9" stroke-linecap="round"/>
+  <circle cx="240" cy="150" r="11" fill="#d9b97c"/><circle cx="240" cy="150" r="22" fill="none" stroke="#d9b97c" stroke-opacity=".5" stroke-width="2"/>
+</svg>

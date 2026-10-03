@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { PILLARS, SHISHI_TIMELINE } from '../../data/pillars.js';
+export function getStaticPaths() {
+  return PILLARS.flatMap((p) => p.items.map((it) => ({ params: { pillar: p.id, slug: it.slug }, props: { p, it } })));
+}
+const { p, it } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const timeline = it.key ? SHISHI_TIMELINE[it.key]?.timeline : null;
+---
+<!-- 本文を書くまでは検索に出さない(noindex) -->
+<BaseLayout title={`${it.n} | ${p.t} | 幕末維新MAP`} description={`${it.n}(${p.t})の解説ページです。`} noindex={true}>
+  <div class="container detail" style={`--c:${p.c}`}>
+    <div class="crumb"><a href={`${base}/`}>ホーム</a> &gt; <a href={`${base}/${p.id}/`}>{p.t}</a> &gt; {it.n}</div>
+    <div style="height:18px"></div>
+    <span class="kind" style={`background:${p.c}`}>{p.t}</span>
+    <h1>{it.n}</h1>
+    <p class="meta">{it.sub.split('|').join(' / ')}</p>
+    <div class="body">
+      <p>[概要:ここに解説文を書きます]</p>
+      {timeline && (
+        <ol>{timeline.map((t) => <li><b>{t.year}年</b>{t.event}</li>)}</ol>
+      )}
+    </div>
+    <p style="margin:24px 0 0">
+      <a class="more" href={`${base}/${p.id}/`}>{p.t}の一覧へ</a>
+      &nbsp;&nbsp;<a class="more" href={`${base}/#map`}>地図で見る</a>
+    </p>
+  </div>
+</BaseLayout>
