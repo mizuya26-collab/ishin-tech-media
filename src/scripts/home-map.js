@@ -21,8 +21,7 @@ const HAKODATE_NOMINAL_KUNI = new Set(['千島', '北見', '天塩', '石狩', '
 // ---------- 状態と共通の関数 ----------
 const PIL = Object.fromEntries(PILLARS.map((p) => [p.id, p]));
 const EVT = [...PIL.events.items].sort((a, b) => a.y - b.y);
-const state = { year: 1853, mode: 0, sel: null, full: false, v1869: 'hakodate', hsq: '' };
-const isHanseki = () => state.year === 1869 && state.v1869 === 'hanseki';
+const state = { year: 1853, mode: 0, sel: null, full: false };
 const DEFAULT_VIEW = { center: [136.0, 36.5], zoom: 5.5 };
 const NOTE_ALL = '左のタブを押すとその年の出来事、中心人物、代表的事例を一覧表示します。';
 const TAB_SUB = { people: 'その年に生きていた志士を表示します。', orgs: 'その年に存在した藩や隊を表示します。', places: 'その年に関係する場所や道を表示します。', tour: 'その年の出来事ゆかりの史跡を表示します。' };
@@ -32,7 +31,6 @@ let map = null, ready = false, lastCam = '';
 const pins = []; // { pid, idx, it, marker, el }
 const personMarkers = {}; // key -> { marker, active }
 let kuniLabelMarkers = {}, hanLabelMarkers = [], pref1876LabelMarkers = [], special1876LabelMarkers = [], ken1871LabelMarkers = [];
-let chijiList = []; // 版籍奉還: 藩知事のマーカー
 let hideHanLabels = false; // 府県の表示のときは、藩名・旧国名を出さない
 const hanColorByName = {};
 
@@ -47,7 +45,7 @@ function evView(y) {
 function isActive(pid, it, y) { if (pid === 'people') return y <= it.d; return (it.r || []).some((a) => y >= a[0] && y <= a[1]); }
 function subFor(pid, it, y) { let t = it.sub.split('|')[0]; if (pid === 'people') { t += ' / ' + (y - it.y) + '歳前後'; if (y === it.d) t += ' / この年に没'; } return t; }
 function phaseAt(y) { let p = null; PHASES.forEach((ph) => { if (ph.year <= y) p = ph; }); return p; }
-function regionFor(y) { return y === 1868 ? 'boshin' : y === 1869 ? (state.v1869 === 'hanseki' ? 'hanseki' : 'hakodate') : y >= 1876 ? 'final' : y >= 1871 ? 'ken1871' : 'han'; }
+function regionFor(y) { return y === 1868 ? 'boshin' : y === 1869 ? 'hakodate' : y >= 1876 ? 'final' : y >= 1871 ? 'ken1871' : 'han'; }
 const detailUrl = (pid, it) => `${BASE}/${pid}/${it.slug}/`;
 const listUrl = (pid) => `${BASE}/${pid}/`;
 
@@ -72,14 +70,11 @@ const NOTE_KEN = {
   1871: '1871年8月の廃藩置県の約4か月後、第1次府県統合で3府72県になりました。この地図は1871年12月ごろの県で、国・郡を単位に作成した概略です(北海道は開拓使、琉球は琉球国)。県名は添付の県境図に合わせています。',
   1872: '県の統合はその後も続き、1876年に現在に近い形になりました。1872〜1875年のこの地図は1871年12月ごろの県境のままで、その後の統合は反映していません。',
 };
-const NOTE_HANSEKI = '1869年7月25日(明治2年6月17日)ごろから、藩主が領地と領民を天皇に返し(版籍奉還)、あらためて藩知事(知藩事)に任命されました。金色の点が各藩の藩知事の位置です。位置は藩領の代表点(移封・新設の藩は現在の所在地)で、目安です。色は通常の藩領表示と同じです。';
 const NOTE_HAN = '藩領は幕末期近世村領域データセットの村点(領分)から作成した概略です。藩名はズームすると順に表示されます。北海道・沖縄はデータがありません。';
 function setRegionMode(kind, y) {
   if (!map || !map.getLayer('han-fill')) return;
-  const isBoshin = kind === 'boshin', isHakodate = kind === 'hakodate', isFinal = kind === 'final', isKen = kind === 'ken1871', isHanseki = kind === 'hanseki';
+  const isBoshin = kind === 'boshin', isHakodate = kind === 'hakodate', isFinal = kind === 'final', isKen = kind === 'ken1871';
   setPrefMode(isFinal ? 'final' : isKen ? 'ken1871' : 'han');
-  if (isHanseki) { hideHanLabels = true; Object.values(kuniLabelMarkers).forEach((m) => (m.getElement().style.display = 'none')); hanLabelMarkers.forEach((o) => (o.m.getElement().style.display = 'none')); }
-  updateChiji(isHanseki);
   map.setPaintProperty('han-fill', 'fill-color', isBoshin ? ['get', 'boshinColor'] : isHakodate ? ['get', 'hakodateColor'] : ['get', 'color']);
   map.setPaintProperty('kuni-fill', 'fill-color', isHakodate ? ['get', 'hakodateColor'] : NEUTRAL_FILL);
   if (!isFinal && !isKen) map.setPaintProperty('kuni-fill', 'fill-opacity', isHakodate ? 0.72 : 0.55);
@@ -87,7 +82,7 @@ function setRegionMode(kind, y) {
   const hl = document.querySelector('.hakodate-legend'); if (hl) hl.style.display = isHakodate ? 'flex' : 'none';
   const bl = document.querySelector('.boshin-legend'); if (bl) bl.style.display = isBoshin ? 'flex' : 'none';
   const note = document.querySelector('.han-note');
-  if (note) note.textContent = isHanseki ? NOTE_HANSEKI : isKen ? (NOTE_KEN[y] || NOTE_KEN[1872]) : isFinal ? '1876年8月21日の第二次府県統合後。旧国名・幕末の藩領表示はこの年では非表示。北海道は開拓使、沖縄は琉球藩。'
+  if (note) note.textContent = isKen ? (NOTE_KEN[y] || NOTE_KEN[1872]) : isFinal ? '1876年8月21日の第二次府県統合後。旧国名・幕末の藩領表示はこの年では非表示。北海道は開拓使、沖縄は琉球藩。'
     : isHakodate ? '青は榎本軍が奉行を置いて実効支配した道南(箱館・松前・江差など、旧渡島国)、薄緑は蝦夷地全域(道央・道北・道東・千島)への名目上の領有宣言、赤は明治政府側です。北海道は藩領データがないため旧国境で表示しています。樺太は地図データがありません。'
     : NOTE_HAN;
 }
@@ -125,25 +120,7 @@ function createPins() {
     });
   });
 }
-function createChiji(data) {
-  data.forEach((it, i) => {
-    const el = document.createElement('button'); el.type = 'button'; el.className = 'chiji-dot'; el.setAttribute('aria-label', `${it.n} 藩知事 ${it.chiji}`); el.title = `${it.n}: ${it.chiji}`;
-    const lab = document.createElement('span'); lab.className = 'chiji-lab'; lab.textContent = it.chiji; el.appendChild(lab);
-    el.style.display = 'none';
-    const marker = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([it.lon, it.lat]).addTo(map);
-    el.addEventListener('click', (e) => { e.stopPropagation(); selectChiji(i); });
-    chijiList.push({ it, el, lab, marker });
-  });
-  map.on('zoom', refreshChiji);
-}
-function refreshChiji() { if (!map) return; const z = map.getZoom(); chijiList.forEach((c) => { c.lab.style.display = z >= c.it.z ? '' : 'none'; }); }
-function updateChiji(show) {
-  chijiList.forEach((c, i) => { c.el.style.display = show ? '' : 'none'; c.el.classList.toggle('sel', show && !!state.sel && state.sel.chiji === i); });
-  refreshChiji();
-}
-function selectChiji(i) { state.full = false; state.sel = { chiji: i }; applyAll(); }
 function updatePins() {
-  if (isHanseki()) { pins.forEach((p) => (p.el.style.display = 'none')); Object.values(personMarkers).forEach((pm) => { if (pm.active) { pm.marker.remove(); pm.active = false; } }); return; }
   const y = state.year, pid = MODES[state.mode], cur = currentEvents(y), vis = new Set();
   if (pid === 'events') evView(y).list.forEach((e) => vis.add(e.slug));
   else PIL[pid].items.forEach((it) => { if (hasPos(it)) vis.add(it.slug); });
@@ -181,26 +158,18 @@ function camera(t) {
 function select(pid, idx) {
   state.full = false; state.sel = { pid, idx };
   if (pid === 'events' && PIL.events.items[idx].y !== state.year) state.year = PIL.events.items[idx].y;
-  if (pid === 'events' && PIL.events.items[idx].slug === 'hanseki-hokan') { state.v1869 = 'hanseki'; state.sel = null; } // 版籍奉還を選ぶと、藩知事の位置の表示にする
   syncSlider(); applyAll();
 }
 function renderPanel() {
   const y = state.year, pid = MODES[state.mode], P = PIL[pid];
   let h = '', target = null;
-  if (state.sel && state.sel.chiji !== undefined) {
-    const c = chijiList[state.sel.chiji]; if (c) {
-      const it = c.it; target = { points: [[it.lon, it.lat]], zoom: 8.5 };
-      h = `<button class="back" type="button" id="back">‹ 藩知事の一覧にもどる</button><span class="kind" style="background:#b8860b">版籍奉還</span><h3 style="margin-top:8px">${esc(it.n)}</h3><p class="sub">藩知事: ${esc(it.chiji)}</p><p>${esc(it.place)}${it.note ? '<br>' + esc(it.note) : ''}${it.approx ? '<br>(位置は目安です)' : ''}</p>`;
-    }
-  } else if (isHanseki()) {
-    h = `<h3>版籍奉還(1869年)</h3><p class="sub">${chijiList.length}藩の藩知事(知藩事)を表示しています。点を押すか、下で探してください。</p><div class="hsearch"><input id="hsq" type="search" placeholder="藩名・藩知事の名前で探す" value="${esc(state.hsq)}" aria-label="藩名・藩知事の名前で探す"></div><ul class="plist" id="hslist"></ul><p style="margin-top:12px"><a class="more" href="${detailUrl('events', PIL.events.items.find((e) => e.slug === 'hanseki-hokan'))}">版籍奉還の記事ページへ</a></p>`;
-  } else if (state.sel) {
+  if (state.sel) {
     const sp = PIL[state.sel.pid], it = sp.items[state.sel.idx];
     const pm = it.key && personMarkers[it.key] && personMarkers[it.key].active ? personMarkers[it.key].marker.getLngLat() : null;
     const pt = pm ? [pm.lng, pm.lat] : hasPos(it) ? [it.lon, it.lat] : null;
     if (pt) target = { points: [pt], zoom: 8 };
     const tl = it.key && SHISHI_TIMELINE[it.key] ? '<ol class="tl" style="margin-top:12px">' + SHISHI_TIMELINE[it.key].timeline.map((t) => `<li class="past"><span class="ty">${t.year}年</span><span style="padding:6px 8px">${esc(t.event)}</span></li>`).join('') + '</ol>' : '';
-    h = `<button class="back" type="button" id="back">‹ 一覧にもどる</button><span class="kind" style="background:${sp.c}">${sp.t}</span><h3 style="margin-top:8px">${esc(it.n)}</h3><p class="sub">${esc(it.sub.split('|').join(' / '))}</p><p>[概要は記事ページに掲載します]</p>${tl}<a class="read" href="${detailUrl(sp.id, it)}">記事を読む</a><div style="margin-top:14px"><a class="more" href="${listUrl(sp.id)}">${sp.t}の一覧へ</a></div>`;
+    h = `<button class="back" type="button" id="back">‹ 一覧にもどる</button><span class="kind" style="background:${sp.c}">${sp.t}</span><h3 style="margin-top:8px">${esc(it.n)}</h3><p class="sub">${esc(it.sub.split('|').join(' / '))}</p><p>[概要は記事ページに掲載します]</p>${tl}<a class="read" href="${detailUrl(sp.id, it)}">記事を読む</a>${it.slug === 'hanseki-hokan' ? `<div style="margin-top:10px"><a class="more" href="${BASE}/hanseki/">版籍奉還・府藩県三治制の地図を見る</a></div>` : ''}<div style="margin-top:14px"><a class="more" href="${listUrl(sp.id)}">${sp.t}の一覧へ</a></div>`;
   } else if (pid === 'events') {
     const V = evView(y), inYear = V.list.filter((e) => e.y === y), focus = inYear.length ? inYear : V.list;
     if (focus.length) target = { points: focus.map((e) => { const p = pins.find((q) => q.it === e); return p ? [p.lon, p.lat] : [e.lon, e.lat]; }), zoom: focus.length > 1 ? 7.2 : 7.6 };
@@ -220,29 +189,21 @@ function renderPanel() {
   }
   if (state.full) target = null;
   $('pbody').innerHTML = h;
-  if (isHanseki() && !(state.sel && state.sel.chiji !== undefined)) renderChijiList(state.hsq);
   camera(target);
   $('fit').style.display = target && !state.full ? '' : 'none';
   const now = $('pbody').querySelector('.tl .now'); if (now && !state.sel) { try { $('panel').scrollTop = Math.max(0, now.offsetTop - 90); } catch (e) { /* 何もしない */ } }
 }
 
-function renderChijiList(q) {
-  const ul = $('hslist'); if (!ul) return;
-  const k = q.trim(); const hit = [];
-  chijiList.forEach((c, i) => { if (!k || c.it.n.includes(k) || c.it.chiji.includes(k) || c.it.place.includes(k)) hit.push(i); });
-  ul.innerHTML = hit.slice(0, 40).map((i) => { const it = chijiList[i].it; return `<li><button type="button" data-ci="${i}"><span class="dot" style="background:#b8860b"></span><span><b>${esc(it.n)}</b><small>${esc(it.chiji)} / ${esc(it.place)}</small></span></button></li>`; }).join('') + (hit.length > 40 ? `<li class="sub" style="padding:8px 4px">ほか${hit.length - 40}件。絞り込んでください。</li>` : '') + (!hit.length ? '<li class="sub" style="padding:8px 4px">見つかりませんでした。</li>' : '');
-}
 // ---------- 画面全体の更新 ----------
 function syncSlider() { $('range').value = state.year; }
 function updateViewSwitch() {
   const el = $('viewsw'); if (!el) return;
   if (state.year !== 1869) { el.hidden = true; return; }
   el.hidden = false;
-  el.innerHTML = '<span class="vslabel">1869年の表示:</span>' + [['hakodate', '箱館戦争の色分け'], ['hanseki', '版籍奉還(藩知事の位置)']].map(([v, t]) => `<button type="button" data-v="${v}" aria-pressed="${state.v1869 === v}">${t}</button>`).join('');
+  el.innerHTML = `<span class="vslabel">1869年の地図は、箱館戦争の色分けです。</span><a class="vslink" href="${BASE}/hanseki/">版籍奉還・府藩県三治制の地図へ →</a>`;
 }
 function applyAll() {
   const y = state.year, pid = MODES[state.mode], cur = currentEvents(y);
-  if (y !== 1869 && state.sel && state.sel.chiji !== undefined) state.sel = null;
   updateViewSwitch();
   $('tlYear').textContent = y + '年';
   $('tlWareki').textContent = WAREKI[y] || '';
@@ -257,17 +218,14 @@ function buildUI() {
   $('pinLegend').innerHTML = MODES.map((pid) => `<span><i class="dot" style="background:${PIL[pid].c}"></i>${PIL[pid].t}</span>`).join('');
   const ys = {}; EVT.forEach((e) => (ys[e.y] = ys[e.y] || []).push(e.n));
   $('marks').innerHTML = Object.keys(ys).map((y) => `<button type="button" class="mk" data-y="${y}" style="left:calc(11px + (100% - 22px) * ${(y - 1853) / 24})" title="${esc(y + '年: ' + ys[y].join('・'))}" aria-label="${esc(y + '年 ' + ys[y].join('、'))}"></button>`).join('');
-  $('tabs').addEventListener('click', (e) => { const b = e.target.closest('.seg'); if (!b) return; state.mode = +b.dataset.m; state.v1869 = 'hakodate'; state.sel = null; state.full = false; $('tabs').querySelectorAll('.seg').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); applyAll(); });
+  $('tabs').addEventListener('click', (e) => { const b = e.target.closest('.seg'); if (!b) return; state.mode = +b.dataset.m; state.sel = null; state.full = false; $('tabs').querySelectorAll('.seg').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); applyAll(); });
   $('range').addEventListener('input', (e) => { state.year = +e.target.value; state.sel = null; state.full = false; applyAll(); });
   $('marks').addEventListener('click', (e) => { const b = e.target.closest('.mk'); if (!b) return; state.year = +b.dataset.y; state.sel = null; state.full = false; syncSlider(); applyAll(); });
   $('fit').addEventListener('click', () => { state.sel = null; state.full = true; applyAll(); });
   $('pbody').addEventListener('click', (e) => {
     if (e.target.closest('#back')) { state.sel = null; return applyAll(); }
-    const ci = e.target.closest('button[data-ci]'); if (ci) return selectChiji(+ci.dataset.ci);
     const b = e.target.closest('button[data-pid]'); if (b && !b.disabled) select(b.dataset.pid, +b.dataset.i);
   });
-  $('pbody').addEventListener('input', (e) => { if (e.target.id === 'hsq') { state.hsq = e.target.value; renderChijiList(state.hsq); } });
-  $('viewsw').addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (!b) return; state.v1869 = b.dataset.v; state.sel = null; state.full = false; applyAll(); });
 }
 
 // ---------- 地図の初期化 ----------
@@ -282,12 +240,11 @@ async function boot() {
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   const loaded = new Promise((res) => map.on('load', res));
-  const data = Promise.all(['kuni', 'han', 'han-labels', 'pref1876', 'pref1871', 'hanseki'].map((n) => fetch(`${BASE}/data/${n}.json`).then((r) => { if (!r.ok) throw new Error(n); return r.json(); })));
+  const data = Promise.all(['kuni', 'han', 'han-labels', 'pref1876', 'pref1871'].map((n) => fetch(`${BASE}/data/${n}.json`).then((r) => { if (!r.ok) throw new Error(n); return r.json(); })));
   try {
-    const [, [KUNI, HAN, HAN_LABELS, PREF, KEN71, HANSEKI]] = await Promise.all([loaded, data]);
+    const [, [KUNI, HAN, HAN_LABELS, PREF, KEN71]] = await Promise.all([loaded, data]);
     addLayers(KUNI, HAN, HAN_LABELS, PREF, KEN71);
     createPins();
-    createChiji(HANSEKI);
     ready = true; $('loading').remove();
     applyAll();
   } catch (err) { console.error(err); $('loading').textContent = '地図データの読み込みに失敗しました。ページを再読み込みしてください。'; }

@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/map.css';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<BaseLayout title="版籍奉還・府藩県三治制の地図(1869〜1871年) - 幕末維新MAP" description="1869年7月の版籍奉還から1871年の廃藩置県まで、藩・府・県が並んだ「府藩県三治制」の時代を地図で見られます。">
+  <link slot="head" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <section id="map" style="padding:28px 0 40px">
+    <div class="container">
+      <p style="margin:0 0 6px"><a class="more" href={`${base}/#map`}>‹ 年表の地図にもどる</a>　<a class="more" href={`${base}/#map`}>函館戦争(1869年)の地図は年表の地図で見られます</a></p>
+      <h1 style="font-size:clamp(1.4rem,4vw,2rem);margin:6px 0 4px">版籍奉還・府藩県三治制の地図</h1>
+      <p class="sub" style="margin:0 0 14px">1869年7月25日(明治2年6月17日)の版籍奉還から、1871年8月29日(明治4年7月14日)の廃藩置県まで。</p>
+      <div class="filters" id="tabs" role="group" aria-label="表示する種類"></div>
+      <div class="mapbox">
+        <div class="stage">
+          <div class="view">
+            <div id="japanMap" class="japan-map"></div>
+            <div class="loading" id="loading">地図を読み込んでいます…</div>
+            <button class="fit" id="fit" type="button">全体を見る</button>
+          </div>
+          <aside class="panel" aria-live="polite" id="panel"><div class="handle" aria-hidden="true"></div><div id="pbody"></div></aside>
+        </div>
+      </div>
+      <div class="map-legends">
+        <div class="tp-legend">
+          <span><i class="sx-i sx-han"></i>藩(地図には藩名を表示)</span>
+          <span><i class="sx-i sx-fu"></i>府</span>
+          <span><i class="sx-i sx-ken"></i>県</span>
+          <span><i class="sx-i" style="background:#e9968c;border-radius:3px"></i>地図の色(函館戦争の地図の「明治政府」と同じ色で統一)</span>
+        </div>
+        <p class="han-note" style="margin-top:10px;color:#c9c3b2">藩領の色は、すべて同じ色です(色で藩を区別する地図ではありません)。藩名は拡大すると順に表示されます。藩の位置は藩庁(城・陣屋)の所在地、府・県の位置は府県庁の所在地の目安です。藩領の境は、幕末期近世村領域データセットから作成した概略で、1869年以降の移封・新設の藩(斗南藩・岩崎藩・生坂藩・福本藩など)の領地は描いていません。</p>
+      </div>
+    </div>
+  </section>
+  <script is:inline src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script>
+    import '../../scripts/hanseki-map.js';
+  </script>
+</BaseLayout>

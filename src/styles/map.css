@@ -46,3 +46,17 @@
 .chiji-dot.sel{background:#d4380d;transform:scale(1.35);z-index:3}
 .chiji-lab{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);white-space:nowrap;font:700 12px 'Noto Sans JP',sans-serif;color:#2b2620;text-shadow:-1px -1px #fff,1px -1px #fff,-1px 1px #fff,1px 1px #fff;pointer-events:none}
 .maplibregl-marker:has(.chiji-dot){z-index:7}
+
+/* 版籍奉還・府藩県三治制の地図(/hanseki/) */
+.sx-pin{width:14px;height:14px;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);cursor:pointer;padding:0;box-sizing:content-box}
+.sx-han{border-radius:50%;background:#b8860b}
+.sx-fu{width:18px;height:18px;border-radius:3px;background:#c0392b}
+.sx-ken{border-radius:3px;background:#2d5fa3}
+.sx-pin.sel{background:#d4380d;border-color:#fff3b0}
+.sx-lab{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);white-space:nowrap;font:900 13px 'Noto Serif JP',serif;color:#111;text-shadow:-1.5px -1.5px #fff,1.5px -1.5px #fff,-1.5px 1.5px #fff,1.5px 1.5px #fff,0 0 4px #fff;pointer-events:none}
+.maplibregl-marker:has(.sx-han){z-index:7}
+.maplibregl-marker:has(.sx-ken){z-index:8}
+.maplibregl-marker:has(.sx-fu){z-index:9}
+.sx-i{display:inline-block;width:12px;height:12px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3);box-sizing:content-box}
+.sx-i.sx-han{border-radius:50%;background:#b8860b}.sx-i.sx-fu{background:#c0392b;border-radius:3px}.sx-i.sx-ken{background:#2d5fa3;border-radius:3px}
+.vslink{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:999px;border:2px solid #b8860b;background:#fff;color:#7a5a00;font:700 14px var(--sans);text-decoration:none}
