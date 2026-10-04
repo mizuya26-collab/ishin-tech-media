@@ -22,6 +22,7 @@ const latest = LATEST.map((l) => ({ ...l, ...find(l.pillar, l.slug) }));
   <section id="map">
     <div class="container">
       <div class="filters" id="tabs" role="group" aria-label="地図に表示する項目"></div>
+      <div class="viewsw" id="viewsw" hidden></div>
       <div class="mapbox">
         <div class="timeline-bar">
           <div class="tl-left">

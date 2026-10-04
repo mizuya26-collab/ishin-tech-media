@@ -85,6 +85,7 @@ export const PILLARS = [
   {slug:'toba-fushimi',n:'鳥羽・伏見の戦い',k:'とばふしみのたたかい',y:1868,lat:34.9353,lon:135.7614,sub:'1868年'},
   {slug:'edo-kaijo',n:'江戸開城',k:'えどかいじょう',y:1868,lat:35.6852,lon:139.7528,sub:'1868年'},
   {slug:'aizu-senso',n:'会津戦争',k:'あいづせんそう',y:1868,lat:37.4948,lon:139.9298,sub:'1868年'},
+  {slug:'hanseki-hokan',n:'版籍奉還',k:'はんせきほうかん',y:1869,lat:35.6852,lon:139.7528,sub:'1869年'},
   {slug:'hakodate-senso',n:'箱館戦争',k:'はこだてせんそう',y:1869,lat:41.7969,lon:140.7569,sub:'1869年'},
   {slug:'haihan-chiken',n:'廃藩置県',k:'はいはんちけん',y:1871,lat:35.6852,lon:139.7528,sub:'1871年'},
   {slug:'seinan-senso',n:'西南戦争',k:'せいなんせんそう',y:1877,lat:31.5977,lon:130.548,sub:'1877年'}

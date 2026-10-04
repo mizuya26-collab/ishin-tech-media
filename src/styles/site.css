@@ -46,6 +46,12 @@ section{padding-top:72px}
 .filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
 .seg{min-height:44px;padding:0 18px;border-radius:999px;border:2px solid var(--c);background:#fff;font:700 15px var(--sans);cursor:pointer;color:var(--c)}
 .seg[aria-pressed=true]{background:var(--c);color:#fff}
+.viewsw{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.viewsw[hidden]{display:none}
+.vslabel{font-size:14px;color:var(--mute)}
+.viewsw button{min-height:40px;padding:0 16px;border-radius:999px;border:2px solid #b8860b;background:#fff;color:#7a5a00;font:700 14px var(--sans);cursor:pointer}
+.viewsw button[aria-pressed=true]{background:#b8860b;color:#fff}
+.hsearch input{width:100%;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:10px;font:inherit;color:var(--fg);background:#fff;margin:4px 0 8px}
 .tabnote{flex:1 1 260px;min-width:200px;font-size:14px;color:var(--mute);line-height:1.6}
 .mapbox{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
 .stage{display:grid;grid-template-columns:1fr 360px}
