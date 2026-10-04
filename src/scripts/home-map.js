@@ -30,8 +30,8 @@ const hasPos = (it) => typeof it.lat === 'number' && typeof it.lon === 'number';
 let map = null, ready = false, lastCam = '';
 const pins = []; // { pid, idx, it, marker, el }
 const personMarkers = {}; // key -> { marker, active }
-let kuniLabelMarkers = {}, hanLabelMarkers = [], pref1876LabelMarkers = [], special1876LabelMarkers = [];
-let finalPrefMode = false;
+let kuniLabelMarkers = {}, hanLabelMarkers = [], pref1876LabelMarkers = [], special1876LabelMarkers = [], ken1871LabelMarkers = [];
+let hideHanLabels = false; // 府県の表示のときは、藩名・旧国名を出さない
 const hanColorByName = {};
 
 function currentEvents(y) { let m = null; EVT.forEach((e) => { if (e.y <= y) m = e.y; }); return m === null ? [] : EVT.filter((e) => e.y === m); }
@@ -45,39 +45,46 @@ function evView(y) {
 function isActive(pid, it, y) { if (pid === 'people') return y <= it.d; return (it.r || []).some((a) => y >= a[0] && y <= a[1]); }
 function subFor(pid, it, y) { let t = it.sub.split('|')[0]; if (pid === 'people') { t += ' / ' + (y - it.y) + '歳前後'; if (y === it.d) t += ' / この年に没'; } return t; }
 function phaseAt(y) { let p = null; PHASES.forEach((ph) => { if (ph.year <= y) p = ph; }); return p; }
-function regionFor(y) { return y === 1868 ? 'boshin' : y === 1869 ? 'hakodate' : y >= 1876 ? 'final' : 'han'; }
+function regionFor(y) { return y === 1868 ? 'boshin' : y === 1869 ? 'hakodate' : y >= 1876 ? 'final' : y >= 1871 ? 'ken1871' : 'han'; }
 const detailUrl = (pid, it) => `${BASE}/${pid}/${it.slug}/`;
 const listUrl = (pid) => `${BASE}/${pid}/`;
 
 // ---------- 地図の領域の見せ方(藩領 / 戊辰戦争 / 函館戦争 / 1876年府県) ----------
-function setFinalPrefectureMode(isFinal) {
-  finalPrefMode = isFinal;
+function setPrefMode(kind) {
+  // kind: 'han'(藩領) / 'ken1871'(明治4年12月の3府72県) / 'final'(1876年の府県)
+  hideHanLabels = kind === 'final' || kind === 'ken1871';
   if (!map || !map.getLayer('pref1876-fill')) return;
-  const oldOpacity = isFinal ? 0 : 0.55, oldLineOpacity = isFinal ? 0 : 0.95, hanOpacity = isFinal ? 0 : 0.8, hanLineOpacity = isFinal ? 0 : 0.4, prefOpacity = isFinal ? 0.62 : 0, prefLineOpacity = isFinal ? 0.95 : 0;
-  map.setPaintProperty('kuni-fill', 'fill-opacity', oldOpacity); map.setPaintProperty('kuni-line', 'line-opacity', oldLineOpacity);
-  map.setPaintProperty('han-fill', 'fill-opacity', hanOpacity); map.setPaintProperty('han-line', 'line-opacity', hanLineOpacity);
-  map.setPaintProperty('pref1876-fill', 'fill-opacity', prefOpacity); map.setPaintProperty('pref1876-line', 'line-opacity', prefLineOpacity);
-  Object.values(kuniLabelMarkers).forEach((m) => (m.getElement().style.display = isFinal ? 'none' : ''));
-  hanLabelMarkers.forEach((o) => (o.m.getElement().style.display = isFinal ? 'none' : map.getZoom() >= o.minZ ? '' : 'none'));
-  pref1876LabelMarkers.forEach((m) => (m.getElement().style.display = isFinal ? '' : 'none'));
-  special1876LabelMarkers.forEach((m) => (m.getElement().style.display = isFinal ? '' : 'none'));
-  const stance = document.querySelector('.stance-legend'); if (stance) stance.style.display = isFinal ? 'none' : '';
+  const han = hideHanLabels ? 0 : 1, k71 = kind === 'ken1871' ? 1 : 0, k76 = kind === 'final' ? 1 : 0;
+  map.setPaintProperty('kuni-fill', 'fill-opacity', 0.55 * han); map.setPaintProperty('kuni-line', 'line-opacity', 0.95 * han);
+  map.setPaintProperty('han-fill', 'fill-opacity', 0.8 * han); map.setPaintProperty('han-line', 'line-opacity', 0.4 * han);
+  map.setPaintProperty('pref1871-fill', 'fill-opacity', 0.66 * k71); map.setPaintProperty('pref1871-line', 'line-opacity', 0.95 * k71);
+  map.setPaintProperty('pref1876-fill', 'fill-opacity', 0.62 * k76); map.setPaintProperty('pref1876-line', 'line-opacity', 0.95 * k76);
+  Object.values(kuniLabelMarkers).forEach((m) => (m.getElement().style.display = hideHanLabels ? 'none' : ''));
+  hanLabelMarkers.forEach((o) => (o.m.getElement().style.display = hideHanLabels ? 'none' : map.getZoom() >= o.minZ ? '' : 'none'));
+  ken1871LabelMarkers.forEach((m) => (m.getElement().style.display = k71 ? '' : 'none'));
+  pref1876LabelMarkers.forEach((m) => (m.getElement().style.display = k76 ? '' : 'none'));
+  special1876LabelMarkers.forEach((m) => (m.getElement().style.display = k76 ? '' : 'none'));
+  const stance = document.querySelector('.stance-legend'); if (stance) stance.style.display = hideHanLabels ? 'none' : '';
 }
+const NOTE_KEN = {
+  1871: '1871年8月の廃藩置県の約4か月後、第1次府県統合で3府72県になりました。この地図は1871年12月ごろの県で、国・郡を単位に作成した概略です(北海道は開拓使、琉球は琉球国)。県名は添付の県境図に合わせています。',
+  1872: '県の統合はその後も続き、1876年に現在に近い形になりました。1872〜1875年のこの地図は1871年12月ごろの県境のままで、その後の統合は反映していません。',
+};
 const NOTE_HAN = '藩領は幕末期近世村領域データセットの村点(領分)から作成した概略です。藩名はズームすると順に表示されます。北海道・沖縄はデータがありません。';
 function setRegionMode(kind, y) {
   if (!map || !map.getLayer('han-fill')) return;
-  const isBoshin = kind === 'boshin', isHakodate = kind === 'hakodate', isFinal = kind === 'final';
-  setFinalPrefectureMode(isFinal);
+  const isBoshin = kind === 'boshin', isHakodate = kind === 'hakodate', isFinal = kind === 'final', isKen = kind === 'ken1871';
+  setPrefMode(isFinal ? 'final' : isKen ? 'ken1871' : 'han');
   map.setPaintProperty('han-fill', 'fill-color', isBoshin ? ['get', 'boshinColor'] : isHakodate ? ['get', 'hakodateColor'] : ['get', 'color']);
   map.setPaintProperty('kuni-fill', 'fill-color', isHakodate ? ['get', 'hakodateColor'] : NEUTRAL_FILL);
-  if (!isFinal) map.setPaintProperty('kuni-fill', 'fill-opacity', isHakodate ? 0.72 : 0.55);
+  if (!isFinal && !isKen) map.setPaintProperty('kuni-fill', 'fill-opacity', isHakodate ? 0.72 : 0.55);
   hanLabelMarkers.forEach((o) => { if (!o.dot) return; const hc = hanColorByName[o.n]; o.dot.style.background = isBoshin && hc ? hc.boshin : isHakodate && hc ? hc.hakodate : CATEGORY_COLOR[o.c]; });
   const hl = document.querySelector('.hakodate-legend'); if (hl) hl.style.display = isHakodate ? 'flex' : 'none';
   const bl = document.querySelector('.boshin-legend'); if (bl) bl.style.display = isBoshin ? 'flex' : 'none';
   const note = document.querySelector('.han-note');
-  if (note) note.textContent = isFinal ? '1876年8月21日の第二次府県統合後。旧国名・幕末の藩領表示はこの年では非表示。北海道は開拓使、沖縄は琉球藩。'
+  if (note) note.textContent = isKen ? (NOTE_KEN[y] || NOTE_KEN[1872]) : isFinal ? '1876年8月21日の第二次府県統合後。旧国名・幕末の藩領表示はこの年では非表示。北海道は開拓使、沖縄は琉球藩。'
     : isHakodate ? '青は榎本軍が奉行を置いて実効支配した道南(箱館・松前・江差など、旧渡島国)、薄緑は蝦夷地全域(道央・道北・道東・千島)への名目上の領有宣言、赤は明治政府側です。北海道は藩領データがないため旧国境で表示しています。樺太は地図データがありません。'
-    : (y >= 1871 ? '1871年の廃藩置県の後も、この地図は幕末期の藩領を表示しています。' : '') + NOTE_HAN;
+    : NOTE_HAN;
 }
 
 // ---------- ピンと人物マーカー ----------
@@ -222,16 +229,16 @@ async function boot() {
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   const loaded = new Promise((res) => map.on('load', res));
-  const data = Promise.all(['kuni', 'han', 'han-labels', 'pref1876'].map((n) => fetch(`${BASE}/data/${n}.json`).then((r) => { if (!r.ok) throw new Error(n); return r.json(); })));
+  const data = Promise.all(['kuni', 'han', 'han-labels', 'pref1876', 'pref1871'].map((n) => fetch(`${BASE}/data/${n}.json`).then((r) => { if (!r.ok) throw new Error(n); return r.json(); })));
   try {
-    const [, [KUNI, HAN, HAN_LABELS, PREF]] = await Promise.all([loaded, data]);
-    addLayers(KUNI, HAN, HAN_LABELS, PREF);
+    const [, [KUNI, HAN, HAN_LABELS, PREF, KEN71]] = await Promise.all([loaded, data]);
+    addLayers(KUNI, HAN, HAN_LABELS, PREF, KEN71);
     createPins();
     ready = true; $('loading').remove();
     applyAll();
   } catch (err) { console.error(err); $('loading').textContent = '地図データの読み込みに失敗しました。ページを再読み込みしてください。'; }
 }
-function addLayers(KUNI, HAN, HAN_LABELS, PREF) {
+function addLayers(KUNI, HAN, HAN_LABELS, PREF, KEN71) {
   KUNI.features.forEach((f) => { f.properties.hakodateColor = HAKODATE_EZO_KUNI.has(f.properties.name) ? HAKODATE_EZO : HAKODATE_NOMINAL_KUNI.has(f.properties.name) ? HAKODATE_NOMINAL : HAKODATE_MEIJI; });
   map.addSource('kuni', { type: 'geojson', data: KUNI });
   map.addLayer({ id: 'kuni-fill', type: 'fill', source: 'kuni', paint: { 'fill-color': NEUTRAL_FILL, 'fill-opacity': 0.55 } });
@@ -256,8 +263,15 @@ function addLayers(KUNI, HAN, HAN_LABELS, PREF) {
   map.addSource('pref1876', { type: 'geojson', data: PREF });
   map.addLayer({ id: 'pref1876-fill', type: 'fill', source: 'pref1876', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0 } });
   map.addLayer({ id: 'pref1876-line', type: 'line', source: 'pref1876', paint: { 'line-color': '#2d2922', 'line-width': 1.7, 'line-opacity': 0 } });
+  // 明治4年12月の3府72県(国・郡を単位に作成。scripts/build_pref1871.py)
+  const kenColor = (name) => { let h = 7; for (const ch of name) h = (h * 37 + ch.charCodeAt(0)) % 360; return `hsl(${h},46%,70%)`; };
+  KEN71.features.forEach((f) => (f.properties.color = f.properties.name === '開拓使' || f.properties.name === '琉球国' ? '#e3dcc6' : kenColor(f.properties.name)));
+  map.addSource('pref1871', { type: 'geojson', data: KEN71 });
+  map.addLayer({ id: 'pref1871-fill', type: 'fill', source: 'pref1871', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0 } });
+  map.addLayer({ id: 'pref1871-line', type: 'line', source: 'pref1871', paint: { 'line-color': '#7a1f1f', 'line-width': ['case', ['get', 'fu'], 2.4, 1.5], 'line-opacity': 0 } });
   const mkLabel = (text, lng, lat, store) => { const el = document.createElement('div'); el.className = 'han-pin'; el.innerHTML = `<div class="label">${esc(text)}</div>`; el.style.display = 'none'; store.push(new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([lng, lat]).addTo(map)); };
   PREF.features.forEach((f) => mkLabel(f.properties.name, f.properties.lon, f.properties.lat, pref1876LabelMarkers));
+  KEN71.features.forEach((f) => mkLabel(f.properties.name, f.properties.lon, f.properties.lat, ken1871LabelMarkers));
   [['開拓使', 141.35, 43.06], ['琉球藩', 127.68, 26.21]].forEach(([n, lng, lat]) => mkLabel(n, lng, lat, special1876LabelMarkers));
   KUNI.features.forEach((f) => { const el = document.createElement('div'); el.className = 'kuni-label'; el.textContent = f.properties.name; kuniLabelMarkers[f.properties.name] = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([f.properties.lon, f.properties.lat]).addTo(map); });
   hanLabelMarkers = [];
@@ -267,7 +281,7 @@ function addLayers(KUNI, HAN, HAN_LABELS, PREF) {
     const minZ = l.v >= 500 ? 5.0 : l.v >= 250 ? 6.0 : l.v >= 120 ? 6.8 : l.v >= 60 ? 7.6 : 8.4;
     hanLabelMarkers.push({ m: new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([l.x, l.y]).addTo(map), minZ, n: l.n, c: l.c, dot: el.querySelector('.dot') });
   });
-  const refresh = () => { const z = map.getZoom(); Object.values(kuniLabelMarkers).forEach((m) => { m.getElement().style.opacity = z >= 5.8 ? '1' : '0'; m.getElement().style.display = finalPrefMode ? 'none' : ''; }); hanLabelMarkers.forEach((o) => { o.m.getElement().style.display = !finalPrefMode && z >= o.minZ ? '' : 'none'; }); };
+  const refresh = () => { const z = map.getZoom(); Object.values(kuniLabelMarkers).forEach((m) => { m.getElement().style.opacity = z >= 5.8 ? '1' : '0'; m.getElement().style.display = hideHanLabels ? 'none' : ''; }); hanLabelMarkers.forEach((o) => { o.m.getElement().style.display = !hideHanLabels && z >= o.minZ ? '' : 'none'; }); };
   map.on('zoom', refresh); refresh();
 }
 

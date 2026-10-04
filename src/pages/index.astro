@@ -23,14 +23,6 @@ const latest = LATEST.map((l) => ({ ...l, ...find(l.pillar, l.slug) }));
     <div class="container">
       <div class="filters" id="tabs" role="group" aria-label="地図に表示する項目"></div>
       <div class="mapbox">
-        <div class="stage">
-          <div class="view">
-            <div id="japanMap" class="japan-map"></div>
-            <div class="loading" id="loading">地図を読み込んでいます…</div>
-            <button class="fit" id="fit" type="button">全体を見る</button>
-          </div>
-          <aside class="panel" aria-live="polite" id="panel"><div class="handle" aria-hidden="true"></div><div id="pbody"></div></aside>
-        </div>
         <div class="timeline-bar">
           <div class="tl-left">
             <div class="tl-year" id="tlYear">1853年</div>
@@ -44,6 +36,14 @@ const latest = LATEST.map((l) => ({ ...l, ...find(l.pillar, l.slug) }));
             </div>
             <div class="ticks"><span>1853 黒船来航</span><span>1868 戊辰戦争</span><span>1877 西南戦争</span></div>
           </div>
+        </div>
+        <div class="stage">
+          <div class="view">
+            <div id="japanMap" class="japan-map"></div>
+            <div class="loading" id="loading">地図を読み込んでいます…</div>
+            <button class="fit" id="fit" type="button">全体を見る</button>
+          </div>
+          <aside class="panel" aria-live="polite" id="panel"><div class="handle" aria-hidden="true"></div><div id="pbody"></div></aside>
         </div>
       </div>
       <div class="map-legends">
