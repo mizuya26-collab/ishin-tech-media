@@ -42,7 +42,7 @@
 .maplibregl-marker:has(.person-icon){z-index:9}
 
 
-.chiji-dot{width:16px;height:16px;border-radius:50%;background:#b8860b;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);cursor:pointer;padding:0;position:relative;box-sizing:content-box}
+.chiji-dot{width:16px;height:16px;border-radius:50%;background:#b8860b;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);cursor:pointer;padding:0;box-sizing:content-box}
 .chiji-dot.sel{background:#d4380d;transform:scale(1.35);z-index:3}
 .chiji-lab{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);white-space:nowrap;font:700 12px 'Noto Sans JP',sans-serif;color:#2b2620;text-shadow:-1px -1px #fff,1px -1px #fff,-1px 1px #fff,1px 1px #fff;pointer-events:none}
 .maplibregl-marker:has(.chiji-dot){z-index:7}

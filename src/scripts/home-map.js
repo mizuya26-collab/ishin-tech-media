@@ -311,7 +311,7 @@ function addLayers(KUNI, HAN, HAN_LABELS, PREF, KEN71) {
   });
   map.addSource('han', { type: 'geojson', data: HAN });
   map.addLayer({ id: 'han-fill', type: 'fill', source: 'han', paint: { 'fill-color': ['get', 'color'], 'fill-opacity': 0.8 } }, 'kuni-line');
-  map.addLayer({ id: 'han-line', type: 'line', source: 'han', paint: { 'line-color': '#2b2620', 'line-width': 0.45, 'line-opacity': 0.28, 'line-join': 'round', 'line-cap': 'round' } }, 'kuni-line');
+  map.addLayer({ id: 'han-line', type: 'line', source: 'han', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#2b2620', 'line-width': 0.45, 'line-opacity': 0.28 } }, 'kuni-line');
   const prefColor = (name) => { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360; return `hsl(${h},42%,72%)`; };
   PREF.features.forEach((f) => (f.properties.color = prefColor(f.properties.name)));
   map.addSource('pref1876', { type: 'geojson', data: PREF });
