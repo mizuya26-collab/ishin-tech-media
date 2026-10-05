@@ -48,15 +48,24 @@
 .maplibregl-marker:has(.chiji-dot){z-index:7}
 
 /* 版籍奉還・府藩県三治制の地図(/hanseki/) */
-.sx-pin{width:14px;height:14px;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);cursor:pointer;padding:0;box-sizing:content-box}
-.sx-han{border-radius:50%;background:#b8860b}
-.sx-fu{width:18px;height:18px;border-radius:3px;background:#c0392b}
-.sx-ken{border-radius:3px;background:#2d5fa3}
+.sx-pin{width:8px;height:8px;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.5);cursor:pointer;padding:0;box-sizing:content-box}
+.sx-pin::after{content:'';position:absolute;left:-8px;top:-8px;right:-8px;bottom:-8px}
+.sx-han{width:4px;height:4px;border-width:1.5px;border-radius:50%;background:#8a5a00}
+.sx-fu{width:12px;height:12px;border-radius:3px;background:#c0392b}
+.sx-ken{width:8px;height:8px;border-radius:2px;background:#2d5fa3}
 .sx-pin.sel{background:#d4380d;border-color:#fff3b0}
-.sx-lab{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);white-space:nowrap;font:900 13px 'Noto Serif JP',serif;color:#111;text-shadow:-1.5px -1.5px #fff,1.5px -1.5px #fff,-1.5px 1.5px #fff,1.5px 1.5px #fff,0 0 4px #fff;pointer-events:none}
+.sx-lab{position:absolute;left:50%;bottom:11px;transform:translateX(-50%);white-space:nowrap;font:900 13px 'Noto Serif JP',serif;color:#111;text-shadow:-1.5px -1.5px #fff,1.5px -1.5px #fff,-1.5px 1.5px #fff,1.5px 1.5px #fff,0 0 4px #fff;pointer-events:none}
 .maplibregl-marker:has(.sx-han){z-index:7}
 .maplibregl-marker:has(.sx-ken){z-index:8}
 .maplibregl-marker:has(.sx-fu){z-index:9}
 .sx-i{display:inline-block;width:12px;height:12px;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3);box-sizing:content-box}
 .sx-i.sx-han{border-radius:50%;background:#b8860b}.sx-i.sx-fu{background:#c0392b;border-radius:3px}.sx-i.sx-ken{background:#2d5fa3;border-radius:3px}
 .vslink{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:999px;border:2px solid #b8860b;background:#fff;color:#7a5a00;font:700 14px var(--sans);text-decoration:none}
+
+.sanchi-legend{display:flex;gap:1.2rem;margin-top:.6rem;font-size:.8rem;color:#4a463d;flex-wrap:wrap}
+.sanchi-legend span{display:inline-flex;align-items:center;gap:.4rem}
+#tabs .seg[hidden]{display:none}
+.sx-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0;font-size:13px}
+.sx-btn{padding:4px 12px;border-radius:999px;border:1px solid #b8860b;background:#fff;color:#7a5a00;font:700 13px var(--sans);cursor:pointer}
+.sx-btn[aria-pressed="true"]{background:#b8860b;color:#fff}
+.map-legends .sanchi-legend{color:#d8d2c0}

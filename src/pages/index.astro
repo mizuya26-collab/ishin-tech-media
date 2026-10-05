@@ -22,7 +22,6 @@ const latest = LATEST.map((l) => ({ ...l, ...find(l.pillar, l.slug) }));
   <section id="map">
     <div class="container">
       <div class="filters" id="tabs" role="group" aria-label="地図に表示する項目"></div>
-      <div class="viewsw" id="viewsw" hidden></div>
       <div class="mapbox">
         <div class="timeline-bar">
           <div class="tl-left">
@@ -32,7 +31,7 @@ const latest = LATEST.map((l) => ({ ...l, ...find(l.pillar, l.slug) }));
           </div>
           <div class="sl">
             <div class="trunk">
-              <input id="range" type="range" min="1853" max="1877" value="1853" step="1" aria-label="年を選ぶ">
+              <input id="range" type="range" min="0" max="25" value="0" step="1" aria-label="年を選ぶ">
               <div class="marks" id="marks"></div>
             </div>
             <div class="ticks"><span>1853 黒船来航</span><span>1868 戊辰戦争</span><span>1877 西南戦争</span></div>
@@ -58,6 +57,9 @@ const latest = LATEST.map((l) => ({ ...l, ...find(l.pillar, l.slug) }));
         <div class="boshin-legend" style="display:none">
           <span><i style="background:#c0392b"></i>薩摩・長州・土佐・肥前</span><span><i style="background:#5d8f58"></i>会津</span>
           <span><i style="background:#a9c7a0"></i>奥羽越列藩同盟</span><span><i style="background:#e9968c"></i>その他</span>
+        </div>
+        <div class="sanchi-legend" style="display:none">
+          <span><i class="sx-i sx-han"></i>藩(藩名)</span><span><i class="sx-i sx-fu"></i>府</span><span><i class="sx-i sx-ken"></i>県</span><span><i class="sx-i" style="background:#8fa6c4;border-radius:3px"></i>府県領(旧幕府領・旗本領・没収地・社寺領など)</span>
         </div>
         <div class="hakodate-legend" style="display:none">
           <span><i style="background:#4a5fa8"></i>実質的な支配区域(道南)</span><span><i style="background:#a9c7a0"></i>名目上の支配区域(蝦夷地全域)</span><span><i style="background:#e9968c"></i>明治政府側</span>
