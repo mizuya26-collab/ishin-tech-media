@@ -59,6 +59,29 @@ function subFor(pid, it, y) { let t = it.sub.split('|')[0]; if (pid === 'people'
 function phaseAt(y) { let p = null; PHASES.forEach((ph) => { if (ph.year <= y) p = ph; }); return p; }
 function regionFor(y, sub = state.sub) { return y === 1868 ? 'boshin' : y === 1869 && sub === 0 ? 'hakodate' : y === 1869 || y === 1870 ? 'sanchi' : y >= 1876 ? 'final' : y >= 1871 ? 'ken1871' : 'han'; }
 const detailUrl = (pid, it) => `${BASE}/${pid}/${it.slug}/`;
+// ---------- 基準日と、藩・府県の状態(移転・改称・廃止・設置を日付で切り替える) ----------
+const refFor = (y, sub = state.sub) => (y === 1868 ? '1868-10-31' : y === 1869 ? (sub === 0 ? '1869-06-27' : '1869-09-30') : `${y}-12-31`);
+const fmtRef = (r) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(r); return m ? `${m[1]}年${+m[2]}月${+m[3]}日` : r; };
+let MOVES = { labels: {}, sanchi: {} };
+function evState(base, evs, ref) { // 版籍奉還より前の藩名ラベル用
+  let st = { ...base, on: true };
+  for (const e of evs || []) { if (e.d > ref) break; if (e.end) st.on = false; else st = { ...st, ...e, on: true }; }
+  return st;
+}
+function sanchiState(it, ref) { // 府藩県三治制の地図用
+  if (it.kind !== 'han') return { on: (!it.from || it.from <= ref) && (!it.to || it.to > ref), dn: it.n, lon: it.lon, lat: it.lat, place: it.place, approx: it.approx };
+  const m = MOVES.sanchi[it.n] || {};
+  if (m.since && m.since > ref) return { on: false, dn: it.n };
+  let st = { on: true, dn: it.n, lon: it.lon, lat: it.lat, place: it.place, approx: it.approx };
+  for (const e of m.ev || []) {
+    if (e.d > ref) break;
+    if (e.end) { st.on = false; continue; }
+    st = { ...st, on: true, dn: e.dn || st.dn };
+    if (e.lon != null) { st.lon = e.lon; st.lat = e.lat; st.place = e.place; st.approx = !!e.approx; st.nopos = false; } else if (e.nopos) { st.nopos = true; st.place = e.place || st.place; }
+  }
+  return st;
+}
+const sc = (it) => sanchiState(it, refFor(state.year, state.sub));
 const listUrl = (pid) => `${BASE}/${pid}/`;
 
 // ---------- 地図の領域の見せ方(藩領 / 戊辰戦争 / 函館戦争 / 1876年府県) ----------
@@ -73,7 +96,7 @@ function setPrefMode(kind) {
   map.setPaintProperty('pref1871-fill', 'fill-opacity', 0.66 * k71); map.setPaintProperty('pref1871-line', 'line-opacity', 0.95 * k71);
   map.setPaintProperty('pref1876-fill', 'fill-opacity', 0.62 * k76); map.setPaintProperty('pref1876-line', 'line-opacity', 0.95 * k76);
   Object.values(kuniLabelMarkers).forEach((m) => (m.getElement().style.display = hideHanLabels ? 'none' : ''));
-  hanLabelMarkers.forEach((o) => (o.m.getElement().style.display = hideHanLabels ? 'none' : map.getZoom() >= o.minZ ? '' : 'none'));
+  hanLabelMarkers.forEach((o) => (o.m.getElement().style.display = hideHanLabels || o.gone ? 'none' : map.getZoom() >= o.minZ ? '' : 'none'));
   ken1871LabelMarkers.forEach((m) => (m.getElement().style.display = k71 ? '' : 'none'));
   pref1876LabelMarkers.forEach((m) => (m.getElement().style.display = k76 ? '' : 'none'));
   special1876LabelMarkers.forEach((m) => (m.getElement().style.display = k76 ? '' : 'none'));
@@ -85,11 +108,17 @@ const NOTE_KEN = {
 };
 const NOTE_HAN = '藩領は幕末期近世村領域データセットの村点(領分)から作成した概略です。藩名はズームすると順に表示されます。北海道・沖縄はデータがありません。';
 const NOTE_SANCHI = '1869年7月25日(明治2年6月17日)の版籍奉還から、1871年8月29日(明治4年7月14日)の廃藩置県までの「府藩県三治制」の地図です。藩は藩名、府・県は庁所在地を示します。藩領は領域ごとに色を分け、藩に属さず府・県が管轄した地域(旧幕府領・旗本領・没収地・社寺領など)は青灰色で示しました(どの県かは分けていません)。領域は幕末期近世村領域データセットから作成した概略で、移封のあった藩は移封前の区域を新しい藩にあてはめています。斗南藩・岩崎藩・生坂藩・白石藩など、領域を描けていない藩は点だけです。領域を押すと説明が出ます。';
+function updateHanLabels() {
+  const ref = refFor(state.year, state.sub);
+  hanLabelMarkers.forEach((o) => { const evs = MOVES.labels[o.n0]; if (!evs) return; const st = evState({ dn: o.n0, x: o.ox, y: o.oy }, evs, ref); o.lab.textContent = st.dn; o.m.setLngLat([st.x, st.y]); o.gone = !st.on; });
+}
 function setRegionMode(kind, y) {
   if (!map || !map.getLayer('han-fill')) return;
   const isBoshin = kind === 'boshin', isHakodate = kind === 'hakodate', isFinal = kind === 'final', isKen = kind === 'ken1871', isSanchi = kind === 'sanchi';
+  updateHanLabels();
   setPrefMode(isFinal ? 'final' : isKen ? 'ken1871' : isSanchi ? 'sanchi' : 'han');
-  map.setPaintProperty('han-fill', 'fill-color', isSanchi ? ['get', state.cmode === 'type' ? 'sanchiTypeColor' : 'sanchiColor'] : isBoshin ? ['get', 'boshinColor'] : isHakodate ? ['get', 'hakodateColor'] : ['get', 'color']);
+  const gone = isSanchi ? sanchiItems.filter((x) => x.kind === 'han' && !sc(x).on).map((x) => x.n) : [], sCol = ['get', state.cmode === 'type' ? 'sanchiTypeColor' : 'sanchiColor'];
+  map.setPaintProperty('han-fill', 'fill-color', isSanchi ? (gone.length ? ['case', ['in', ['get', 'dn'], ['literal', gone]], KEN_COLOR, sCol] : sCol) : isBoshin ? ['get', 'boshinColor'] : isHakodate ? ['get', 'hakodateColor'] : ['get', 'color']);
   map.setPaintProperty('kuni-fill', 'fill-color', isHakodate ? ['get', 'hakodateColor'] : NEUTRAL_FILL);
   if (!isFinal && !isKen) map.setPaintProperty('kuni-fill', 'fill-opacity', isHakodate ? 0.72 : 0.55);
   hanLabelMarkers.forEach((o) => { if (!o.dot) return; const hc = hanColorByName[o.n]; o.dot.style.background = isBoshin && hc ? hc.boshin : isHakodate && hc ? hc.hakodate : CATEGORY_COLOR[o.c]; });
@@ -97,7 +126,7 @@ function setRegionMode(kind, y) {
   const sl = document.querySelector('.sanchi-legend'); if (sl) sl.style.display = isSanchi ? 'flex' : 'none';
   const bl = document.querySelector('.boshin-legend'); if (bl) bl.style.display = isBoshin ? 'flex' : 'none';
   const note = document.querySelector('.han-note');
-  if (note) note.textContent = isSanchi ? NOTE_SANCHI : isKen ? (NOTE_KEN[y] || NOTE_KEN[1872]) : isFinal ? '1876年8月21日の第二次府県統合後。旧国名・幕末の藩領表示はこの年では非表示。北海道は開拓使、沖縄は琉球藩。'
+  if (note) note.textContent = isSanchi ? NOTE_SANCHI : isKen ? (NOTE_KEN[y] || NOTE_KEN[1872]) : isFinal ? '1876年8月21日の第二次府県統合後。北海道は開拓使、沖縄は琉球藩。'
     : isHakodate ? '青は榎本軍が奉行を置いて実効支配した道南(箱館・松前・江差など、旧渡島国)、薄緑は蝦夷地全域(道央・道北・道東・千島)への名目上の領有宣言、赤は明治政府側です。北海道は藩領データがないため旧国境で表示しています。樺太は地図データがありません。'
     : NOTE_HAN;
 }
@@ -179,7 +208,11 @@ function createSanchiMarkers(data) {
   map.on('zoom', refreshSanchiLabels);
 }
 function refreshSanchiLabels() { if (!map) return; const z = map.getZoom(); sanchiItems.forEach((it) => { it.lab.style.display = z >= it.minZ ? '' : 'none'; }); }
-function updateSanchiMarkers() { const on = sanchiOn(); sanchiItems.forEach((it, i) => { it.el.style.display = on && sanchiVisible(it) ? '' : 'none'; it.el.classList.toggle('sel', state.ss === i); }); refreshSanchiLabels(); }
+function updateSanchiMarkers() {
+  const on = sanchiOn();
+  sanchiItems.forEach((it, i) => { const c = sc(it), show = c.on && !c.nopos; it.el.style.display = on && show && sanchiVisible(it) ? '' : 'none'; if (show) it.marker.setLngLat([c.lon, c.lat]); it.lab.textContent = c.dn; it.el.title = c.dn; it.el.classList.toggle('sel', state.ss === i); });
+  refreshSanchiLabels();
+}
 function selectSanchi(i) { state.mode = SM; state.sel = null; state.full = false; state.ss = i; applyAll(); }
 function bindAreaClick() {
   map.on('mouseenter', 'han-fill', () => { if (sanchiOn()) map.getCanvas().style.cursor = 'pointer'; });
@@ -188,40 +221,42 @@ function bindAreaClick() {
     if (!sanchiOn()) return;
     const f = e.features && e.features[0]; if (!f) return;
     const { k, dn, h } = f.properties;
-    if (k === 'han') { const i = sanchiItems.findIndex((x) => x.kind === 'han' && x.n === dn); if (i >= 0) return selectSanchi(i); }
+    if (k === 'han') { const i = sanchiItems.findIndex((x) => x.kind === 'han' && x.n === dn); if (i >= 0 && sc(sanchiItems[i]).on) return selectSanchi(i); }
     const label = /藩$/.test(h) ? `旧${h}の領地` : h;
     new maplibregl.Popup({ closeButton: false, maxWidth: '260px' }).setLngLat(e.lngLat)
       .setHTML(`<b>${esc(label)}</b><br>府・県が管轄した地域(旧幕府領・旗本領・没収地・社寺領など)。どの県かは、この地図では分けていません。`).addTo(map);
   });
 }
 function sanchiRow(i) {
-  const it = sanchiItems[i], K = SKIND[it.kind];
-  const sub = it.kind === 'han' ? `知藩事 ${it.chiji[0].name} / ${it.place}` : `${K.t} / ${it.place}${it.approx ? '(位置は目安)' : ''}`;
-  return `<li><button type="button" data-si="${i}"><span class="dot" style="background:${K.c}${it.kind === 'han' ? '' : ';border-radius:3px'}"></span><span><b>${esc(it.n)}</b><small>${esc(sub)}</small></span></button></li>`;
+  const it = sanchiItems[i], K = SKIND[it.kind], c = sc(it), ref = refFor(state.year, state.sub);
+  const cj = it.kind === 'han' ? it.chiji.filter((x) => x.d <= ref).pop() || it.chiji[0] : null;
+  const sub = it.kind === 'han' ? `知藩事 ${cj.name} / ${c.place}${c.nopos ? '' : c.approx ? '(位置は目安)' : ''}` : `${K.t} / ${c.place}${c.approx ? '(位置は目安)' : ''}`;
+  return `<li><button type="button" data-si="${i}"><span class="dot" style="background:${K.c}${it.kind === 'han' ? '' : ';border-radius:3px'}"></span><span><b>${esc(c.dn)}</b><small>${esc(sub)}</small></span></button></li>`;
 }
 function renderSanchiList() {
   const l = $('hslist'); if (!l) return;
   const k = state.hq.trim(), hit = [];
-  sanchiItems.forEach((it, i) => { if (sanchiVisible(it) && (!k || [it.n, it.place, it.note, it.kind === 'han' ? it.chiji.map((c) => c.name).join(' ') : ''].join(' ').includes(k))) hit.push(i); });
+  sanchiItems.forEach((it, i) => { if (sanchiVisible(it) && sc(it).on && (!k || [it.n, sc(it).dn, sc(it).place, it.note, it.kind === 'han' ? it.chiji.map((c) => c.name).join(' ') : ''].join(' ').includes(k))) hit.push(i); });
   l.innerHTML = hit.slice(0, 50).map(sanchiRow).join('') + (hit.length > 50 ? `<li class="sub" style="padding:8px 4px">ほか${hit.length - 50}件。絞り込んでください。</li>` : '') + (!hit.length ? '<li class="sub" style="padding:8px 4px">見つかりませんでした。</li>' : '');
-  $('hscount').textContent = `藩${sanchiItems.filter((x) => x.kind === 'han').length}・府${sanchiItems.filter((x) => x.kind === 'fu').length}・県${sanchiItems.filter((x) => x.kind === 'ken').length}(うち${hit.length}件を表示)`;
+  const live = sanchiItems.filter((x) => sc(x).on);
+  $('hscount').textContent = `藩${live.filter((x) => x.kind === 'han').length}・府${live.filter((x) => x.kind === 'fu').length}・県${live.filter((x) => x.kind === 'ken').length}(うち${hit.length}件を表示)`;
 }
 function sanchiPanelHtml() {
   const i = state.ss;
   if (i !== null && sanchiItems[i]) {
-    const it = sanchiItems[i], K = SKIND[it.kind];
-    let h = `<button class="back" type="button" id="sback" style="display:block">‹ 府藩県の一覧にもどる</button><span class="kind" style="background:${K.c}">${K.t}</span><h3 style="margin-top:8px">${esc(it.n)}</h3>`;
+    const it = sanchiItems[i], K = SKIND[it.kind], c = sc(it);
+    let h = `<button class="back" type="button" id="sback" style="display:block">‹ 府藩県の一覧にもどる</button><span class="kind" style="background:${K.c}">${K.t}</span><h3 style="margin-top:8px">${esc(c.dn)}</h3>`;
     if (it.kind === 'han') {
-      h += `<p class="sub">所在地: ${esc(it.place)}${it.approx ? '(位置は目安です)' : ''}</p><div class="grp" style="font-weight:700;margin:10px 0 4px">知藩事</div><ul style="list-style:none;padding:0;margin:0">` +
+      h += `<p class="sub">所在地: ${esc(c.place)}${c.nopos ? '' : c.approx ? '(位置は目安です)' : ''}</p><div class="grp" style="font-weight:700;margin:10px 0 4px">知藩事</div><ul style="list-style:none;padding:0;margin:0">` +
         it.chiji.map((c) => `<li style="padding:6px 0;border-bottom:1px solid #e3d9c2"><b>${esc(c.name)}</b><br><small>${esc(fmtDate(c.w, c.d))}${c.why ? ' / ' + esc(c.why) : ''}</small></li>`).join('') + '</ul>';
       if (it.note) h += `<p style="margin-top:12px">${esc(it.note)}</p>`;
     } else {
-      h += `<p class="sub">庁の所在地: ${esc(it.place)}${it.approx ? '(位置は目安です)' : ''}</p><p><b>設置</b> ${esc(it.set || '(資料に日付なし)')}<br><b>廃止・その後</b> ${esc(it.end)}</p>${it.note ? `<p>${esc(it.note)}</p>` : ''}`;
+      h += `<p class="sub">庁の所在地: ${esc(c.place)}${c.approx ? '(位置は目安です)' : ''}</p><p><b>設置</b> ${esc(it.set || '(資料に日付なし)')}<br><b>廃止・その後</b> ${esc(it.end)}</p>${it.note ? `<p>${esc(it.note)}</p>` : ''}`;
     }
     return h;
   }
   const pr = (v, cur) => `aria-pressed="${v === cur}"`;
-  return `<h3>府藩県三治制(明治2〜4年)</h3><p class="sub">1868年6月11日(慶応4年閏4月21日)の政体書で、旧幕府領などに府・県が置かれ、藩は従来どおり大名が治める「府藩県三治制」になりました。1869年7月25日の版籍奉還で藩も国の行政区画となり、大名は知藩事に任命されました。</p>
+  return `<h3>府藩県三治制(明治2〜4年)</h3><p class="sub">この地図の基準日は<b>${fmtRef(refFor(state.year, state.sub))}</b>です。藩の移転・改称・廃止、府県の設置・廃止は、この日の時点の状態で表示します。</p><p class="sub">1868年6月11日(慶応4年閏4月21日)の政体書で、旧幕府領などに府・県が置かれ、藩は従来どおり大名が治める「府藩県三治制」になりました。1869年7月25日の版籍奉還で藩も国の行政区画となり、大名は知藩事に任命されました。</p>
     <div class="sx-row">表示 <button type="button" class="sx-btn" data-sf="all" ${pr('all', state.sf)}>すべて</button><button type="button" class="sx-btn" data-sf="han" ${pr('han', state.sf)}>藩</button><button type="button" class="sx-btn" data-sf="fuken" ${pr('fuken', state.sf)}>府・県</button></div>
     <div class="sx-row">色分け <button type="button" class="sx-btn" data-cm="area" ${pr('area', state.cmode)}>領域ごと</button><button type="button" class="sx-btn" data-cm="type" ${pr('type', state.cmode)}>藩の種類</button></div>
     <p class="sub" id="hscount"></p><div class="hsearch"><input id="hsq" type="search" placeholder="藩名・府県名・知藩事の名前で探す" value="${esc(state.hq)}" aria-label="藩名・府県名・知藩事の名前で探す"></div><ul class="plist" id="hslist"></ul>
@@ -333,9 +368,10 @@ async function boot() {
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   const loaded = new Promise((res) => map.on('load', res));
-  const data = Promise.all(['kuni', 'han', 'han-labels', 'pref1876', 'pref1871', 'sanchi'].map((n) => fetch(`${BASE}/data/${n}.json`).then((r) => { if (!r.ok) throw new Error(n); return r.json(); })));
+  const data = Promise.all(['kuni', 'han', 'han-labels', 'pref1876', 'pref1871', 'sanchi', 'moves'].map((n) => fetch(`${BASE}/data/${n}.json`).then((r) => { if (!r.ok) throw new Error(n); return r.json(); })));
   try {
-    const [, [KUNI, HAN, HAN_LABELS, PREF, KEN71, SANCHI]] = await Promise.all([loaded, data]);
+    const [, [KUNI, HAN, HAN_LABELS, PREF, KEN71, SANCHI, MV]] = await Promise.all([loaded, data]);
+    MOVES = MV;
     addLayers(KUNI, HAN, HAN_LABELS, PREF, KEN71, SANCHI);
     createPins();
     ready = true; $('loading').remove();
@@ -389,9 +425,9 @@ function addLayers(KUNI, HAN, HAN_LABELS, PREF, KEN71, SANCHI) {
     const el = document.createElement('div'); el.className = 'han-pin';
     el.innerHTML = `<div class="dot" style="background:${CATEGORY_COLOR[l.c]}"></div><div class="label">${esc(l.n)}</div>`;
     const minZ = l.v >= 500 ? 5.0 : l.v >= 250 ? 6.0 : l.v >= 120 ? 6.8 : l.v >= 60 ? 7.6 : 8.4;
-    hanLabelMarkers.push({ m: new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([l.x, l.y]).addTo(map), minZ, n: l.n, c: l.c, dot: el.querySelector('.dot') });
+    hanLabelMarkers.push({ m: new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([l.x, l.y]).addTo(map), minZ, n: l.n, n0: l.n, ox: l.x, oy: l.y, lab: el.querySelector('.label'), c: l.c, dot: el.querySelector('.dot') });
   });
-  const refresh = () => { const z = map.getZoom(); Object.values(kuniLabelMarkers).forEach((m) => { m.getElement().style.opacity = z >= 5.8 ? '1' : '0'; m.getElement().style.display = hideHanLabels ? 'none' : ''; }); hanLabelMarkers.forEach((o) => { o.m.getElement().style.display = !hideHanLabels && z >= o.minZ ? '' : 'none'; }); };
+  const refresh = () => { const z = map.getZoom(); Object.values(kuniLabelMarkers).forEach((m) => { m.getElement().style.opacity = z >= 5.8 ? '1' : '0'; m.getElement().style.display = hideHanLabels ? 'none' : ''; }); hanLabelMarkers.forEach((o) => { o.m.getElement().style.display = !hideHanLabels && !o.gone && z >= o.minZ ? '' : 'none'; }); };
   map.on('zoom', refresh); refresh();
   createSanchiMarkers(SANCHI); bindAreaClick();
 }
