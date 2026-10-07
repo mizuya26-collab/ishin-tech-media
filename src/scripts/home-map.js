@@ -368,7 +368,7 @@ async function boot() {
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
   const loaded = new Promise((res) => map.on('load', res));
-  const data = Promise.all(['kuni', 'han', 'han-labels', 'pref1876', 'pref1871', 'sanchi', 'moves'].map((n) => fetch(`${BASE}/data/${n}.json`).then((r) => { if (!r.ok) throw new Error(n); return r.json(); })));
+  const data = Promise.all(['kuni', 'han', 'han-labels', 'pref1876', 'pref1871', 'sanchi', 'moves'].map((n) => fetch(`${BASE}/data/${n}.json?v=20261007`).then((r) => { if (!r.ok) throw new Error(n); return r.json(); })));
   try {
     const [, [KUNI, HAN, HAN_LABELS, PREF, KEN71, SANCHI, MV]] = await Promise.all([loaded, data]);
     MOVES = MV;
