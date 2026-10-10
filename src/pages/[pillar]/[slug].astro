@@ -1,27 +1,59 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { PILLARS, SHISHI_TIMELINE } from '../../data/pillars.js';
+import { ARTICLES } from '../../data/articles.js';
+import '../../styles/article.css';
 export function getStaticPaths() {
   return PILLARS.flatMap((p) => p.items.map((it) => ({ params: { pillar: p.id, slug: it.slug }, props: { p, it } })));
 }
 const { p, it } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const timeline = it.key ? SHISHI_TIMELINE[it.key]?.timeline : null;
+// 記事本文(src/data/articles.js)がある項目は記事として表示する
+const article = ARTICLES[`${p.id}/${it.slug}`];
+const pageTitle = `${article ? article.title : it.n} | ${p.t} | 幕末維新MAP`;
+const pageDesc = article ? article.description : `${it.n}(${p.t})の解説ページです。`;
+// 本文を書くまでは検索に出さない(noindex)。記事は article.noindex が false になったら検索に出す
+const noindex = article ? article.noindex !== false : true;
 ---
-<!-- 本文を書くまでは検索に出さない(noindex) -->
-<BaseLayout title={`${it.n} | ${p.t} | 幕末維新MAP`} description={`${it.n}(${p.t})の解説ページです。`} noindex={true}>
+<BaseLayout title={pageTitle} description={pageDesc} noindex={noindex}>
   <div class="container detail" style={`--c:${p.c}`}>
     <div class="crumb"><a href={`${base}/`}>ホーム</a> &gt; <a href={`${base}/${p.id}/`}>{p.t}</a> &gt; {it.n}</div>
     <div style="height:18px"></div>
     <span class="kind" style={`background:${p.c}`}>{p.t}</span>
-    <h1>{it.n}</h1>
-    <p class="meta">{it.sub.split('|').join(' / ')}</p>
-    <div class="body">
-      <p>[概要:ここに解説文を書きます]</p>
-      {timeline && (
-        <ol>{timeline.map((t) => <li><b>{t.year}年</b>{t.event}</li>)}</ol>
-      )}
-    </div>
+    <h1>{article ? article.title : it.n}</h1>
+    <p class="meta">{article ? `${it.n} / ` : ''}{it.sub.split('|').join(' / ')}</p>
+    {article ? (
+      <>
+        {it.img && (
+          <figure class="afig">
+            <img src={`${base}/shishi/${it.img}`} alt={`${it.n}のイメージ画像`} />
+            <figcaption>イメージ画像</figcaption>
+          </figure>
+        )}
+        <div class="body article">
+          <div class="lead">{article.lead.map((t) => <p>{t}</p>)}</div>
+          {article.sections.map((s) => (
+            <>
+              <h2>{s.h}</h2>
+              {s.blocks.map((b) => b.fig ? (
+                <figure class="pfig">
+                  <img src={`${base}${b.fig.src}`} alt={b.fig.alt} loading="lazy" />
+                  <figcaption>{b.fig.cap}</figcaption>
+                </figure>
+              ) : <p>{b.p}</p>)}
+            </>
+          ))}
+        </div>
+      </>
+    ) : (
+      <div class="body">
+        <p>[概要:ここに解説文を書きます]</p>
+        {timeline && (
+          <ol>{timeline.map((t) => <li><b>{t.year}年</b>{t.event}</li>)}</ol>
+        )}
+      </div>
+    )}
     <p style="margin:24px 0 0">
       <a class="more" href={`${base}/${p.id}/`}>{p.t}の一覧へ</a>
       &nbsp;&nbsp;<a class="more" href={`${base}/#map`}>地図で見る</a>
